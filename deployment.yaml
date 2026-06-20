@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-java-payload
+  labels:
+    app: secure-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-java
+  template:
+    metadata:
+      labels:
+        app: hello-java
+    spec:
+      containers:
+      - name: java-app
+        image: 127.0.0.1:5000/stackbill/hello-java:latest
+        imagePullPolicy: Never  # Forces K3s to prioritize your local seeded container vault cache
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
