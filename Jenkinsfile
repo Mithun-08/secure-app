@@ -24,20 +24,20 @@ pipeline {
                 sh "podman build -t ${env.IMAGE_REF} ."
             }
         }
-
-        stage('Push Image') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: cfg.ghcrCredentialsId,
-                    usernameVariable: 'GHCR_USER',
-                    passwordVariable: 'GHCR_PAT'
-                )]) {
-                    sh """
-                        echo \$GHCR_PAT | podman login ${cfg.registry} -u \$GHCR_USER --password-stdin
-                        podman push ${env.IMAGE_REF}
-                    """
-                }
-            }
+	stage('Push Image') {
+    	    steps {
+        	withCredentials([usernamePassword(
+            	    credentialsId: cfg.ghcrCredentialsId,
+            	    usernameVariable: 'GHCR_USER',
+            	    passwordVariable: 'GHCR_PAT'
+        	)]) {
+            	    sh """
+                	mkdir -p \$HOME/.docker
+                	echo \$GHCR_PAT | podman login ${cfg.registry} -u \$GHCR_USER --password-stdin --authfile=\$HOME/.docker/config.json
+                	podman push --authfile=\$HOME/.docker/config.json ${env.IMAGE_REF}
+            	     """
+        	}
+    	    }	
         }
 
         stage('Sign Image (Keyless)') {
