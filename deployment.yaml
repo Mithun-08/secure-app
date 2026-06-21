@@ -16,9 +16,11 @@ spec:
     spec:
       containers:
       - name: java-app
-        image: 127.0.0.1:5000/stackbill/hello-java:latest
-        imagePullPolicy: Never  # Forces K3s to prioritize your local seeded container vault cache
+        image: ghcr.io/mithun-08/hello-java@sha256:57f468c59c7bc7e814ab325f87ea8141e2dc6027981f773c0e4832c9f57d6a87
+        imagePullPolicy: IfNotPresent
         resources:
           limits:
             memory: "256Mi"
             cpu: "500m"
+      imagePullSecrets:
+      - name: ghcr-secret
