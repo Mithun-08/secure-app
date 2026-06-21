@@ -45,7 +45,7 @@ pipeline {
                 withCredentials([file(credentialsId: cfg.gcpKeyCredentialsId, variable: 'GCP_KEY')]) {
                     sh """
                         gcloud auth activate-service-account --key-file=\$GCP_KEY
-                        TOKEN=\$(gcloud auth print-identity-token --audiences=sigstore --include-email)
+                        TOKEN=\$(gcloud auth print-identity-token --audiences=sigstore)
                         cosign sign --yes --identity-token="\$TOKEN" ${env.IMAGE_REF}
                     """
                 }
