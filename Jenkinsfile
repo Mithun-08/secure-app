@@ -63,14 +63,16 @@ pipeline {
             }
         }
 
-        stage('Deploy to K3s') {
+	stage('Deploy to K3s') {
             steps {
                 sh """
+                    kubectl apply -f deployment.yaml -n ${cfg.k3sNamespace}
                     kubectl set image deployment/${cfg.k3sDeploymentName} \
                       ${cfg.k3sContainerName}=${env.IMAGE_REF} \
-                      -n ${cfg.k3sNamespace}
-                """
-            }
-        }
+              	      -n ${cfg.k3sNamespace}
+        	"""
+           }
+       }    
+
     }
 }
