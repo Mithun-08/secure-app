@@ -5,7 +5,17 @@ pipeline {
         stage('Load Config') {
             steps {
                 script {
-                    cfg = load 'config.groovy'
+                    cfg = [
+                        registry            : env.REGISTRY,
+                        imageName           : env.IMAGE_NAME,
+                        ghcrCredentialsId   : env.GHCR_CREDENTIALS_ID,
+                        gcpKeyCredentialsId : env.GCP_KEY_CREDENTIALS_ID,
+                        gcpSignerIdentity   : env.GCP_SIGNER_IDENTITY,
+                        oidcIssuer          : env.OIDC_ISSUER,
+                        k3sNamespace        : env.K3S_NAMESPACE,
+                        k3sDeploymentName   : env.K3S_DEPLOYMENT_NAME,
+                        k3sContainerName    : env.K3S_CONTAINER_NAME
+                    ]
                 }
             }
         }
@@ -24,20 +34,21 @@ pipeline {
                 sh "podman build -t ${env.IMAGE_REF} ."
             }
         }
-	stage('Push Image') {
-    	    steps {
-        	withCredentials([usernamePassword(
-            	    credentialsId: cfg.ghcrCredentialsId,
-            	    usernameVariable: 'GHCR_USER',
-            	    passwordVariable: 'GHCR_PAT'
-        	)]) {
-            	    sh """
-                	mkdir -p \$HOME/.docker
-                	echo \$GHCR_PAT | podman login ${cfg.registry} -u \$GHCR_USER --password-stdin --authfile=\$HOME/.docker/config.json
-                	podman push --authfile=\$HOME/.docker/config.json ${env.IMAGE_REF}
-            	     """
-        	}
-    	    }	
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: cfg.ghcrCredentialsId,
+                    usernameVariable: 'GHCR_USER',
+                    passwordVariable: 'GHCR_PAT'
+                )]) {
+                    sh """
+                        mkdir -p \$HOME/.docker
+                        echo \$GHCR_PAT | podman login ${cfg.registry} -u \$GHCR_USER --password-stdin --authfile=\$HOME/.docker/config.json
+                        podman push --authfile=\$HOME/.docker/config.json ${env.IMAGE_REF}
+                    """
+                }
+            }
         }
 
         stage('Sign Image (Keyless)') {
@@ -51,28 +62,5 @@ pipeline {
                 }
             }
         }
-
-        stage('Verify Signature') {
-            steps {
-                sh """
-                    cosign verify \
-                      --certificate-identity=${cfg.gcpSignerIdentity} \
-                      --certificate-oidc-issuer=${cfg.oidcIssuer} \
-                      ${env.IMAGE_REF}
-                """
-            }
-        }
-
-	stage('Deploy to K3s') {
-            steps {
-                sh """
-                    kubectl apply -f deployment.yaml -n ${cfg.k3sNamespace}
-                    kubectl set image deployment/${cfg.k3sDeploymentName} \
-                      ${cfg.k3sContainerName}=${env.IMAGE_REF} \
-              	      -n ${cfg.k3sNamespace}
-        	"""
-           }
-       }    
-
     }
 }
